@@ -1,0 +1,136 @@
+﻿@page "/materias"
+@using MudBlazor
+@using MBGestaoEscolarAN.Entities
+@using MBGestaoEscolarAN.Services.Interfaces
+@inject IMateriaService MateriaService
+@inject ITurmaService TurmaService
+@inject IInstrutorService InstrutorService
+
+<h3>Lista de Matérias</h3>
+
+@if (materias == null)
+{
+    <p>Carregando...</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Turma</th>
+                <th>Instrutor</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var materia in materias)
+            {
+                <tr>
+                    <td>@materia.Id</td>
+                    <td>@materia.Nome</td>
+                    <td>@materia.Turma?.Nome</td>
+                    <td>@materia.Instrutor?.Nome</td>
+                    <td>
+                        <button class="btn btn-primary" @onclick="@(() => EditarMateria(materia))">Editar</button>
+                        <button class="btn btn-danger" @onclick="@(() => ExcluirMateria(materia.Id))">Excluir</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<h3>@(materiaAtual.Id == 0 ? "Adicionar Nova Matéria" : "Editar Matéria")</h3>
+
+<EditForm Model="@materiaAtual" OnValidSubmit="SalvarMateria">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="form-group">
+        <label>Nome:</label>
+        <InputText class="form-control" @bind-Value="materiaAtual.Nome" />
+    </div>
+
+    <div class="form-group">
+        <label>Turma:</label>
+        <InputSelect class="form-control" @bind-Value="materiaAtual.TurmaId">
+            <option value="">Selecione a Turma</option>
+            @foreach (var turma in turmas)
+            {
+                <option value="@turma.TurmaId">@turma.Nome</option>
+            }
+        </InputSelect>
+    </div>
+
+    <div class="form-group">
+        <label>Instrutor:</label>
+        <InputSelect class="form-control" @bind-Value="materiaAtual.InstrutorId">
+            <option value="">Selecione o Instrutor</option>
+            @foreach (var instrutor in instrutores)
+            {
+                <option value="@instrutor.InstrutorId">@instrutor.Nome</option>
+            }
+        </InputSelect>
+    </div>
+
+    <button type="submit" class="btn btn-success">Salvar</button>
+    <button type="button" class="btn btn-secondary" @onclick="LimparFormulario">Cancelar</button>
+</EditForm>
+
+@code {
+    private List<Materia> materias;
+    private List<Turma> turmas;
+    private List<Instrutor> instrutores;
+    private Materia materiaAtual = new Materia();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CarregarDados();
+    }
+
+    private async Task CarregarDados()
+    {
+        materias = (await MateriaService.ListarTodosAsync()).ToList();
+        turmas = (await TurmaService.ListarTodosAsync()).ToList();
+        instrutores = (await InstrutorService.ListarTodosAsync()).ToList();
+    }
+
+    private async Task SalvarMateria()
+    {
+        if (materiaAtual.Id == 0)
+        {
+            await MateriaService.AdicionarAsync(materiaAtual);
+        }
+        else
+        {
+            await MateriaService.AlterarAsync(materiaAtual);
+        }
+
+        await CarregarDados();
+        LimparFormulario();
+    }
+
+    private void EditarMateria(Materia materia)
+    {
+        materiaAtual = new Materia
+            {
+                Id = materia.Id,
+                Nome = materia.Nome,
+                TurmaId = materia.TurmaId,
+                InstrutorId = materia.InstrutorId
+            };
+    }
+
+    private async Task ExcluirMateria(int id)
+    {
+        await MateriaService.ExcluirAsync(id);
+        await CarregarDados();
+    }
+
+    private void LimparFormulario()
+    {
+        materiaAtual = new Materia();
+    }
+}

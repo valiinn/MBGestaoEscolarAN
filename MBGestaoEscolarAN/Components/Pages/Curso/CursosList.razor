@@ -1,0 +1,125 @@
+﻿@page "/cursos"
+@using MudBlazor
+@using MBGestaoEscolarAN.Entities
+@using MBGestaoEscolarAN.Services.Interfaces
+@inject ICursoService CursoService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudCard>
+    <MudCardContent>
+        <MudText Typo="Typo.h6" Class="mb-4">Cursos Cadastrados</MudText>
+        <MudPaper Class="d-flex justify-end flex-grow-1 mb-6" Elevation="0">
+            <MudButton Color="Color.Primary"
+                       Variant="Variant.Filled"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       Disabled="@( _dialogOpen )"
+                       OnClick="() => ShowDialog(string.Empty)">
+                Adicionar Novo Curso
+            </MudButton>
+        </MudPaper>
+        <MudDataGrid Items="@_cursos" SortMode="SortMode.Multiple" Hover="true">
+            <Columns>
+                <PropertyColumn Property="x => x.CursoId" Title="ID" />
+                <PropertyColumn Property="x => x.Nome" Title="Nome" />
+                <PropertyColumn Property="x => x.Codigo" Title="Código" />
+                <PropertyColumn Property="x => x.Descricao" Title="Descrição" />
+                <PropertyColumn Property="x => x.CargaHoraria" Title="Carga Horária" />
+                <PropertyColumn Property="x => x.Modalidade" Title="Modalidade" />
+                <PropertyColumn Property="x => x.Trilha" Title="Trilha" />
+                <PropertyColumn Property="x => x.PontosCap" Title="Pontos CAP" />
+                <PropertyColumn Property="x => x.StatusCurso" Title="Status" />
+                <PropertyColumn Property="x => x.CoordenadorId" Title="ID Coordenador" />
+                <TemplateColumn StickyRight="true" Title="Ações">
+                    <CellTemplate>
+                        <MudIconButton Color="Color.Primary"
+                                       Icon="@Icons.Material.Filled.Edit"
+                                       Size="Size.Small"
+                                       OnClick="() => ShowDialog(context.Item.CursoId.ToString())" />
+                        <MudIconButton Color="Color.Secondary"
+                                       Icon="@Icons.Material.Filled.Delete"
+                                       Size="Size.Small"
+                                       OnClick="() => ConfirmaExclusaoCurso(context.Item)" />
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+            <PagerContent>
+                <MudDataGridPager T="Curso" />
+            </PagerContent>
+        </MudDataGrid>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    private List<Curso> _cursos = new();
+    private bool _dialogOpen;
+    private readonly DialogOptions _dialogOptions = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _cursos = (await CursoService.ListarTodosAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao carregar cursos: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task ShowDialog(string idCurso)
+    {
+        _dialogOpen = true;
+        var parameters = new DialogParameters();
+
+        if (!string.IsNullOrEmpty(idCurso))
+        {
+            var curso = _cursos.FirstOrDefault(x => x.CursoId.ToString() == idCurso);
+            parameters.Add("Curso", curso);
+            parameters.Add("Title", "Editar Curso");
+        }
+        else
+        {
+            parameters.Add("Curso", new Curso());
+            parameters.Add("Title", "Novo Curso");
+        }
+
+        var dialog = DialogService.Show<CursoDialog>(
+            parameters["Title"]!.ToString(),
+            parameters,
+            _dialogOptions
+        );
+
+        var result = await dialog.Result;
+        _dialogOpen = false;
+
+        if (!result.Canceled)
+        {
+            _cursos = (await CursoService.ListarTodosAsync()).ToList();
+            StateHasChanged();
+        }
+    }
+
+    private async Task ConfirmaExclusaoCurso(Curso curso)
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            "Confirmação de Exclusão",
+            $"Deseja realmente excluir o curso {curso.Nome} (Código: {curso.Codigo})?",
+            yesText: "Sim",
+            cancelText: "Não"
+        );
+
+        if (confirmed == true)
+        {
+            await CursoService.ExcluirAsync(curso.CursoId);
+            _cursos = (await CursoService.ListarTodosAsync()).ToList();
+            Snackbar.Add($"Curso '{curso.Nome}' removido com sucesso.", Severity.Success);
+            StateHasChanged();
+        }
+    }
+}

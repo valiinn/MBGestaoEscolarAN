@@ -1,0 +1,235 @@
+﻿@using MBGestaoEscolarAN.Entities
+@using MBGestaoEscolarAN.Services.Interfaces
+@using MBGestaoEscolarAN.ViewModels
+@using MudBlazor
+@using System.Threading.Channels
+@inject IAlunoService AlunoService
+@inject IDialogService Dialog
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6" Class="tituloFormulario">
+            <MudIcon Icon="@Icons.Material.Filled.Person" Class="mr-3" /> @viewModel.TituloFormulario
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudContainer Style="max-height: 70vh; overflow-y: auto;">
+            <EditForm Model="@viewModel" OnValidSubmit="OnValidSubmit">
+                <DataAnnotationsValidator />
+                <MudGrid>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField Label="Matrícula"
+                                      @bind-Value="viewModel.Matricula"
+                                      For="@(() => viewModel.Matricula)"
+                                      Required="true"
+                                      Immediate="true"
+                                      HelperText="Número único de identificação do aluno" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField Label="Nome Completo"
+                                      @bind-Value="viewModel.Nome"
+                                      For="@(() => viewModel.Nome)"
+                                      Required="true"
+                                      Immediate="true" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField Label="CPF"
+                                      @bind-Value="viewModel.CPF"
+                                      For="@(() => viewModel.CPF)"
+                                      Mask="@(new PatternMask("000.000.000-00"))"
+                                      Required="true"
+                                      Immediate="true" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudDatePicker Label="Data de Nascimento"
+                                       @bind-Date="viewModel.DataNascimento"
+                                       For="@(() => viewModel.DataNascimento)"
+                                       DateFormat="dd/MM/yyyy"
+                                       Placeholder="Selecione a data" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField Label="Email"
+                                      @bind-Value="viewModel.Email"
+                                      For="@(() => viewModel.Email)"
+                                      InputType="InputType.Email"
+                                      Required="true"
+                                      Immediate="true" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField Label="Telefone"
+                                      @bind-Value="viewModel.Telefone"
+                                      For="@(() => viewModel.Telefone)"
+                                      Mask="@(new PatternMask("(00) 00000-0000"))"
+                                      Required="true"
+                                      Immediate="true" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField Label="Endereço"
+                                      @bind-Value="viewModel.Endereco"
+                                      For="@(() => viewModel.Endereco)"
+                                      Lines="2"
+                                      Immediate="true" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="string"
+                                   Label="Status do Aluno"
+                                   @bind-Value="viewModel.StatusAluno"
+                                   For="@(() => viewModel.StatusAluno)"
+                                   Required="true">
+                            <MudSelectItem Value="@("Ativo")">Ativo</MudSelectItem>
+                            <MudSelectItem Value="@("Inativo")">Inativo</MudSelectItem>
+                            <MudSelectItem Value="@("Suspenso")">Suspenso</MudSelectItem>
+                            <MudSelectItem Value="@("Trancado")">Trancado</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+
+                    @if (viewModel.IsEdicao)
+                    {
+                        <MudItem xs="12" sm="6">
+                            <MudTextField Label="Data de Cadastro"
+                                          Value="@(viewModel.DataCadastro?.ToString("dd/MM/yyyy HH:mm") ?? "")"
+                                          ReadOnly="true"
+                                          Disabled="true" />
+                        </MudItem>
+                    }
+                </MudGrid>
+            </EditForm>
+        </MudContainer>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   Disabled="@salvando"
+                   OnClick="SalvarAluno">
+            @if (salvando)
+            {
+                <MudProgressCircular Color="Color.Secondary" Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ml-2">Salvando...</MudText>
+            }
+            else
+            {
+                <MudText>@viewModel.TextoBotao</MudText>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+    [Parameter] public Aluno aluno { get; set; } = new();
+    [Parameter] public string Title { get; set; } = "";
+    bool sucesso = false;
+    private AlunoViewModel viewModel = new();
+    private bool salvando = false;
+    protected override async Task OnInitializedAsync()
+    {
+        if (aluno?.AlunoId > 0)
+        {
+            //Modo de alteração{ de um novo registro
+            viewModel = new AlunoViewModel
+                {
+                    AlunoId = aluno.AlunoId,
+                    Matricula = aluno.Matricula,
+                    Nome = aluno.Nome,
+                    CPF = aluno.Cpf,
+                    Email = aluno.Email,
+                    Telefone = aluno.Telefone,
+                    DataNascimento = aluno.DataNascimento,
+                    Endereco = aluno.Endereco,
+                    StatusAluno = aluno.StatusAluno,
+                    DataCadastro = aluno.DataCadastro
+                };
+
+        }
+        else
+        {
+            //Modo de Criação de um novo registro
+            viewModel = new AlunoViewModel
+                {
+                    StatusAluno = "Ativo"
+                };
+        }
+    }
+    private async Task SalvarAluno()
+    {
+        try
+        {
+            salvando = true;
+            var aluno = new Aluno
+                {
+                    AlunoId = viewModel.AlunoId,
+                    Matricula = viewModel.Matricula,
+                    Nome = viewModel.Nome,
+                    Cpf = viewModel.CPF,
+                    Email = viewModel.Email,
+                    Telefone = viewModel.Telefone,
+                    DataNascimento = viewModel.DataNascimento,
+                    Endereco = viewModel.Endereco,
+                    StatusAluno = viewModel.StatusAluno,
+                    DataCadastro = viewModel.DataCadastro ?? DateTime.Now
+                };
+
+
+
+            if (viewModel.IsEdicao)
+            {
+                // Para atualização - service retorna Task (void)
+                await AlunoService.AlterarAsync(aluno);
+                sucesso = true;
+                Snackbar.Add("Aluno atualizado com sucesso!", Severity.Success);
+            }
+            else
+            {
+                // Para criação - service retorna Task (void)
+                await AlunoService.AdicionarAsync(aluno);
+                sucesso = true;
+                Snackbar.Add("Aluno criado com sucesso!", Severity.Success);
+            }
+
+            if (sucesso)
+            {
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+        }
+        catch (ArgumentException ex)
+        {
+            // Erros de validação específicos
+            Snackbar.Add($"Erro de validação: {ex.Message}", Severity.Warning);
+            sucesso = false;
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Erros de regra de negócio
+            Snackbar.Add($"Erro: {ex.Message}", Severity.Error);
+            sucesso = false;
+        }
+        catch (Exception ex)
+        {
+            // Outros erros
+            Snackbar.Add($"Erro interno. Tente novamente. Erro: {ex.Message}", Severity.Error);
+            sucesso = false;
+        }
+        finally
+        {
+            salvando = false;
+        }
+    }
+    private async Task OnValidSubmit(EditContext context)
+    {
+        await SalvarAluno();
+    }
+
+    void Cancel() => MudDialog.Cancel();
+
+}
