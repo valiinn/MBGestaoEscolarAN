@@ -17,6 +17,23 @@ namespace MBGestaoEscolarAN.Services.Implementations
             _context = context;
         }
 
+        public async Task<IEnumerable<Materia>> ListarTodosAsync()
+        {
+            return await _context.Materias
+                           .AsNoTracking()
+                           .OrderBy(x => x.Nome)
+                           .ToListAsync();
+        }
+
+        public async Task<Materia?> ListarPorIdAsync(int id)
+        {
+            return await _context.Materias
+                .AsNoTracking()
+                .Include(m => m.Turma)
+                .Include(m => m.Instrutor)
+                .FirstOrDefaultAsync(m => m.MateriaId == id);
+        }
+
         public async Task<int> AdicionarAsync(Materia materia)
         {
             await _context.Materias.AddAsync(materia);
@@ -33,27 +50,16 @@ namespace MBGestaoEscolarAN.Services.Implementations
         public async Task ExcluirAsync(int id)
         {
             var materia = await _context.Materias.FindAsync(id);
-            if (materia != null)
+            if (materia is not null)
             {
                 _context.Materias.Remove(materia);
                 await _context.SaveChangesAsync();
             }
         }
 
-        public async Task<Materia?> ListarPorIdAsync(int id)
+        Task IMateriaService.AdicionarAsync(Materia materia)
         {
-            return await _context.Materias
-                .Include(m => m.Turma)
-                .Include(m => m.Instrutor)
-                .FirstOrDefaultAsync(m => m.MateriaId == id);
-        }
-
-        public async Task<List<Materia>> ListarTodosAsync()
-        {
-            return await _context.Materias
-                .Include(m => m.Turma)
-                .Include(m => m.Instrutor)
-                .ToListAsync();
+            throw new NotImplementedException();
         }
     }
 }

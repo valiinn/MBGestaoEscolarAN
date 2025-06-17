@@ -33,9 +33,9 @@ namespace MBGestaoEscolarAN.Services.Implementations
             throw new NotImplementedException();
         }
 
-        public Task<IEnumerable<Turma>> ListarTodosAsync()
+        public async Task<IEnumerable<Turma>> ListarTodosAsync()
         {
-            throw new NotImplementedException();
+            return await Task.FromResult(new List<Turma>());
         }
     }
 }

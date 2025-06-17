@@ -33,9 +33,11 @@ namespace MBGestaoEscolarAN.Services.Implementations
             throw new NotImplementedException();
         }
 
-        public Task<IEnumerable<Instrutor>> ListarTodosAsync()
+
+        public async Task<IEnumerable<Instrutor>> ListarTodosAsync()
         {
-            throw new NotImplementedException();
+            // Replace with actual logic to fetch data, e.g., from a database  
+            return await Task.FromResult(new List<Instrutor>());
         }
     }
 }

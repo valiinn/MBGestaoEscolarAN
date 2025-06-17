@@ -32,6 +32,6 @@ namespace MBGestaoEscolarAN.Entities
 
         [Required]
         [Range(0.0, 10.0)]
-        public double PesoNota { get; set; }
+        public decimal PesoNota { get; set; }
     }
 }
