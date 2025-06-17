@@ -17,7 +17,8 @@
     <DialogContent>
         <MudContainer Style="max-height: 70vh; overflow-y: auto;">
             <EditForm Model="@viewModel" OnValidSubmit="OnValidSubmit">
-                <DataAnnotationsValidator />
+                
+                <ValidationSummary />
                 <MudGrid>
                     <MudItem xs="12" sm="6">
                         <MudTextField Label="Nome do Curso"
@@ -60,32 +61,34 @@
                         </MudSelect>
                     </MudItem>
                 </MudGrid>
+
+                <DialogActions>
+                    <MudButton OnClick="Cancel" Type="button">Cancelar</MudButton>
+                    <MudButton Color="Color.Primary"
+                               Variant="Variant.Filled"
+                               Disabled="@salvando"
+                               ButtonType="ButtonType.Submit">
+                        @if (salvando)
+                        {
+                            <MudProgressCircular Color="Color.Secondary" Size="Size.Small" Indeterminate="true" />
+                            <MudText Class="ml-2">Salvando...</MudText>
+                        }
+                        else
+                        {
+                            <MudText>@viewModel.TextoBotao</MudText>
+                        }
+                    </MudButton>
+                </DialogActions>
             </EditForm>
         </MudContainer>
     </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="Cancel">Cancelar</MudButton>
-        <MudButton Color="Color.Primary"
-                   Variant="Variant.Filled"
-                   Disabled="@salvando"
-                   OnClick="SalvarCurso">
-            @if (salvando)
-            {
-                <MudProgressCircular Color="Color.Secondary" Size="Size.Small" Indeterminate="true" />
-                <MudText Class="ml-2">Salvando...</MudText>
-            }
-            else
-            {
-                <MudText>@viewModel.TextoBotao</MudText>
-            }
-        </MudButton>
-    </DialogActions>
 </MudDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
     [Parameter] public Curso curso { get; set; } = new();
-    bool sucesso = false;
+    [Parameter] public string Title { get; set; } = "";
+    private bool sucesso = false;
     private CursoViewModel viewModel = new();
     private bool salvando = false;
 
@@ -94,17 +97,22 @@
         if (curso?.CursoId > 0)
         {
             viewModel = new CursoViewModel
-                {
-                    CursoId = curso.CursoId,
-                    Nome = curso.Nome,
-                    Descricao = curso.Descricao,
-                    Modalidade = curso.Modalidade,
-                    StatusCurso = curso.StatusCurso
-                };
+            {
+                CursoId = curso.CursoId,
+                Nome = curso.Nome,
+                //Codigo = curso.Codigo,
+                Descricao = curso.Descricao,
+                //CargaHoraria = curso.CargaHoraria,
+                Modalidade = curso.Modalidade,
+                Trilha = curso.Trilha,
+                PontosCap = curso.PontosCap,
+                StatusCurso = curso.StatusCurso,
+                CoordenadorId = curso.CoordenadorId
+            };
         }
         else
         {
-            viewModel = new CursoViewModel(); // Inicializa com StatusCurso = "Ativo" pelo ViewModel
+            viewModel = new CursoViewModel(); // Inicializa com StatusCurso = "Ativo"
         }
     }
 
@@ -113,14 +121,20 @@
         try
         {
             salvando = true;
+
             var cursoEntity = new Curso
-                {
-                    CursoId = viewModel.CursoId,
-                    Nome = viewModel.Nome,
-                    Descricao = viewModel.Descricao,
-                    Modalidade = viewModel.Modalidade,
-                    StatusCurso = viewModel.StatusCurso
-                };
+            {
+                CursoId = viewModel.CursoId,
+                Nome = viewModel.Nome,
+                Codigo = viewModel.Codigo,
+                Descricao = viewModel.Descricao,
+                CargaHoraria = viewModel.CargaHoraria,
+                Modalidade = viewModel.Modalidade,
+                Trilha = viewModel.Trilha,
+                PontosCap = viewModel.PontosCap,
+                StatusCurso = viewModel.StatusCurso,
+                CoordenadorId = viewModel.CoordenadorId
+            };
 
             if (viewModel.IsEdicao)
             {

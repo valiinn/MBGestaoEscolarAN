@@ -1,43 +1,68 @@
-﻿using MBGestaoEscolarAN.Entities;
+﻿using MBGestaoEscolarAN.Data;
+using MBGestaoEscolarAN.Entities;
 using MBGestaoEscolarAN.Services.Interfaces;
-using MBGestaoEscolarAN.Services.Repository.Interface;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 
-namespace MBGestaoEscolarAN.Services.Implementations
+
+namespace MBGestaoEscolarAN.Service.Implementations
 {
     public class MateriaService : IMateriaService
     {
-        private readonly IMateriaRepository _materiaRepository;
+        private readonly SQLServerDbContext _context;
 
-        public MateriaService(IMateriaRepository materiaRepository)
+        public MateriaService(SQLServerDbContext context)
         {
-            _materiaRepository = materiaRepository;
+            _context = context;
         }
 
         public async Task<IEnumerable<Materia>> ListarTodosAsync()
         {
-            return await _materiaRepository.ListarTodosAsync();
+            return await _context.Materias.Include(m => m.Turma).Include(m => m.Instrutor).ToListAsync();
         }
 
         public async Task<Materia> ListarPorIdAsync(int id)
         {
-            return await _materiaRepository.ListarPorIdAsync(id);
+            return await _context.Materias
+                .Include(m => m.Turma)
+                .Include(m => m.Instrutor)
+                .FirstOrDefaultAsync(m => m.Id == id);
         }
 
         public async Task AdicionarAsync(Materia materia)
         {
-            await _materiaRepository.AdicionarAsync(materia);
+            await _context.Materias.AddAsync(materia);
+            await _context.SaveChangesAsync();
         }
 
         public async Task AlterarAsync(Materia materia)
         {
-            await _materiaRepository.AlterarAsync(materia);
+            _context.Materias.Update(materia);
+            await _context.SaveChangesAsync();
         }
 
         public async Task ExcluirAsync(int id)
         {
-            await _materiaRepository.ExcluirAsync(id);
+            var materia = await _context.Materias.FindAsync(id);
+            if (materia != null)
+            {
+                _context.Materias.Remove(materia);
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        Task<int> IMateriaService.AdicionarAsync(Materia materia)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task<bool> IMateriaService.AlterarAsync(Materia materia)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task<bool> IMateriaService.ExcluirAsync(int id)
+        {
+            throw new NotImplementedException();
         }
     }
 }

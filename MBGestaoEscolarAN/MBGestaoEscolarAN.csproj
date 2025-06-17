@@ -6,6 +6,23 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="Components\Pages\Materia1\**" />
+    <Compile Remove="Components\Pages\NovaPasta1\**" />
+    <Content Remove="Components\Pages\Materia1\**" />
+    <Content Remove="Components\Pages\NovaPasta1\**" />
+    <EmbeddedResource Remove="Components\Pages\Materia1\**" />
+    <EmbeddedResource Remove="Components\Pages\NovaPasta1\**" />
+    <None Remove="Components\Pages\Materia1\**" />
+    <None Remove="Components\Pages\NovaPasta1\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Entities\Materia.cs" />
+    <Compile Remove="Services\Implementations\MateriaService.cs" />
+    <Compile Remove="Services\Interfaces\IMateriaService.cs" />
+  </ItemGroup>
+
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.5" />
@@ -19,10 +36,5 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="MudBlazor" Version="8.*" />
-  </ItemGroup>
-
-
-  <ItemGroup>
-    <Folder Include="Components\Pages\NovaPasta1\" />
   </ItemGroup>
 </Project>
