@@ -14,5 +14,11 @@ namespace MBGestaoEscolarAN.Data
         public DbSet<Inscricao> Inscricoes { get; set; }
         public DbSet<Instrutor> Instrutores { get; set; }
         public DbSet<Turma> Turmas { get; set; }
+        public DbSet<Materia> Materias { get; set; }
+
+
+
     }
+
+
 }

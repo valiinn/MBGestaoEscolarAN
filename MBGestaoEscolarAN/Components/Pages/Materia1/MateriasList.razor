@@ -5,85 +5,81 @@
 @inject IMateriaService MateriaService
 @inject ITurmaService TurmaService
 @inject IInstrutorService InstrutorService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 
-<h3>Lista de Matérias</h3>
+<MudCard>
+    <MudCardContent>
+        <MudText Typo="Typo.h6" Class="mb-4">Lista de Matérias</MudText>
 
-@if (materias == null)
-{
-    <p>Carregando...</p>
-}
-else
-{
-    <table class="table">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Nome</th>
-                <th>Turma</th>
-                <th>Instrutor</th>
-                <th>Ações</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var materia in materias)
-            {
-                <tr>
-                    <td>@materia.Id</td>
-                    <td>@materia.Nome</td>
-                    <td>@materia.Turma?.Nome</td>
-                    <td>@materia.Instrutor?.Nome</td>
-                    <td>
-                        <button class="btn btn-primary" @onclick="@(() => EditarMateria(materia))">Editar</button>
-                        <button class="btn btn-danger" @onclick="@(() => ExcluirMateria(materia.Id))">Excluir</button>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
+        <MudPaper Class="d-flex justify-end flex-grow-1 mb-6" Elevation="0">
+            <MudButton Color="Color.Primary"
+                       Variant="Variant.Filled"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       Disabled="@_dialogOpen"
+                       OnClick="() => ShowDialog(null)">
+                Adicionar Nova Matéria
+            </MudButton>
+        </MudPaper>
 
-<h3>@(materiaAtual.Id == 0 ? "Adicionar Nova Matéria" : "Editar Matéria")</h3>
+        @if (materias == null || turmas == null || instrutores == null)
+        {
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            <p>Carregando dados...</p>
+        }
+        else
+        {
+            <MudDataGrid Items="materias" Hover="true" SortMode="SortMode.Multiple" Bordered="true" Striped="true">
+                <Columns>
+                    <PropertyColumn Property="x => x.MateriaId" Title="ID" />
+                    <PropertyColumn Property="x => x.Nome" Title="Nome" />
 
-<EditForm Model="@materiaAtual" OnValidSubmit="SalvarMateria">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
+                    <TemplateColumn Title="Turma">
+                        <CellTemplate>
+                            @context.Item.Turma?.Nome
+                        </CellTemplate>
+                    </TemplateColumn>
 
-    <div class="form-group">
-        <label>Nome:</label>
-        <InputText class="form-control" @bind-Value="materiaAtual.Nome" />
-    </div>
+                    <TemplateColumn Title="Instrutor">
+                        <CellTemplate>
+                            @context.Item.Instrutor?.Nome
+                        </CellTemplate>
+                    </TemplateColumn>
 
-    <div class="form-group">
-        <label>Turma:</label>
-        <InputSelect class="form-control" @bind-Value="materiaAtual.TurmaId">
-            <option value="">Selecione a Turma</option>
-            @foreach (var turma in turmas)
-            {
-                <option value="@turma.TurmaId">@turma.Nome</option>
-            }
-        </InputSelect>
-    </div>
+                    <TemplateColumn StickyRight="true" Title="Ações" Width="150px">
+                        <CellTemplate>
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Color="Color.Primary"
+                                           Size="Size.Small"
+                                           OnClick="() => ShowDialog(context.Item.MateriaId)" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                           Color="Color.Error"
+                                           Size="Size.Small"
+                                           OnClick="() => ConfirmarExclusaoMateria(context.Item)" />
+                        </CellTemplate>
+                    </TemplateColumn>
+                </Columns>
 
-    <div class="form-group">
-        <label>Instrutor:</label>
-        <InputSelect class="form-control" @bind-Value="materiaAtual.InstrutorId">
-            <option value="">Selecione o Instrutor</option>
-            @foreach (var instrutor in instrutores)
-            {
-                <option value="@instrutor.InstrutorId">@instrutor.Nome</option>
-            }
-        </InputSelect>
-    </div>
-
-    <button type="submit" class="btn btn-success">Salvar</button>
-    <button type="button" class="btn btn-secondary" @onclick="LimparFormulario">Cancelar</button>
-</EditForm>
+                <PagerContent>
+                    <MudDataGridPager T="Materia" />
+                </PagerContent>
+            </MudDataGrid>
+        }
+    </MudCardContent>
+</MudCard>
 
 @code {
-    private List<Materia> materias;
-    private List<Turma> turmas;
-    private List<Instrutor> instrutores;
-    private Materia materiaAtual = new Materia();
+    private List<Materia> materias = new();
+    private List<Turma> turmas = new();
+    private List<Instrutor> instrutores = new();
+    private bool _dialogOpen = false;
+
+    private readonly DialogOptions _dialogOptions = new()
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
 
     protected override async Task OnInitializedAsync()
     {
@@ -97,40 +93,53 @@ else
         instrutores = (await InstrutorService.ListarTodosAsync()).ToList();
     }
 
-    private async Task SalvarMateria()
+    private async Task ShowDialog(int? materiaId)
     {
-        if (materiaAtual.Id == 0)
+        _dialogOpen = true;
+
+        var parameters = new DialogParameters
         {
-            await MateriaService.AdicionarAsync(materiaAtual);
+            { "Turmas", turmas },
+            { "Instrutores", instrutores }
+        };
+
+        if (materiaId.HasValue)
+        {
+            var materia = materias.FirstOrDefault(m => m.MateriaId == materiaId.Value);
+            parameters.Add("Materia", materia);
+            parameters.Add("Title", "Editar Matéria");
         }
         else
         {
-            await MateriaService.AlterarAsync(materiaAtual);
+            parameters.Add("Materia", new Materia());
+            parameters.Add("Title", "Nova Matéria");
         }
 
-        await CarregarDados();
-        LimparFormulario();
+        var dialog = DialogService.Show<MateriaDialog>(parameters["Title"]!.ToString(), parameters, _dialogOptions);
+        var result = await dialog.Result;
+
+        _dialogOpen = false;
+
+        if (!result.Canceled)
+        {
+            await CarregarDados();
+            StateHasChanged();
+        }
     }
 
-    private void EditarMateria(Materia materia)
+    private async Task ConfirmarExclusaoMateria(Materia materia)
     {
-        materiaAtual = new Materia
-            {
-                Id = materia.Id,
-                Nome = materia.Nome,
-                TurmaId = materia.TurmaId,
-                InstrutorId = materia.InstrutorId
-            };
-    }
+        bool? confirmado = await DialogService.ShowMessageBox(
+            "Confirmação de Exclusão",
+            $"Deseja realmente excluir a matéria '{materia.Nome}'?",
+            yesText: "Sim", cancelText: "Não");
 
-    private async Task ExcluirMateria(int id)
-    {
-        await MateriaService.ExcluirAsync(id);
-        await CarregarDados();
-    }
-
-    private void LimparFormulario()
-    {
-        materiaAtual = new Materia();
+        if (confirmado == true)
+        {
+            await MateriaService.ExcluirAsync(materia.MateriaId);
+            await CarregarDados();
+            Snackbar.Add($"Matéria '{materia.Nome}' excluída com sucesso.", Severity.Success);
+            StateHasChanged();
+        }
     }
 }

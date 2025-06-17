@@ -89,12 +89,12 @@
         turmas = (await TurmaService.ListarTodosAsync()).ToList();
         instrutores = (await InstrutorService.ListarTodosAsync()).ToList();
 
-        if (materia?.Id > 0)
+        if (materia?.MateriaId > 0)
         {
             // Modo edição
             viewModel = new MateriaViewModel
                 {
-                    Id = materia.Id,
+                    Id = materia.MateriaId,
                     Nome = materia.Nome,
                     TurmaId = materia.TurmaId,
                     InstrutorId = materia.InstrutorId,
@@ -115,7 +115,7 @@
             salvando = true;
             var novaMateria = new Materia
                 {
-                    Id = viewModel.Id,
+                    MateriaId = viewModel.Id,
                     Nome = viewModel.Nome,
                     TurmaId = viewModel.TurmaId,
                     InstrutorId = viewModel.InstrutorId

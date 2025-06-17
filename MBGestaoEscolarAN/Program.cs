@@ -1,4 +1,4 @@
-using MBGestaoEscolarAN.Components;
+﻿using MBGestaoEscolarAN.Components;
 using MBGestaoEscolarAN.Data;
 using MBGestaoEscolarAN.Services.Implementations;
 using MBGestaoEscolarAN.Services.Interfaces;
@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
-//String de Conex�o do SQL Server
+//String de Conexão do SQL Server
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 // Registrar o DbContext com SQL Server
@@ -25,6 +25,11 @@ builder.Services.AddDbContext<SQLServerDbContext>(options =>
 builder.Services.AddScoped<IAlunoService,AlunoService>();
 builder.Services.AddScoped<ICoordenadorService, CoordenadorService>();
 builder.Services.AddScoped<ICursoService, CursoService>();
+// ✅ Adicione os serviços de Matéria
+builder.Services.AddScoped<IMateriaService, MateriaService>();
+builder.Services.AddScoped<ITurmaService, TurmaService>();
+builder.Services.AddScoped<IInstrutorService, InstrutorService>();
+
 
 // Add MudBlazor services
 builder.Services.AddMudServices();
