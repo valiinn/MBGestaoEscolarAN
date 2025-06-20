@@ -10,28 +10,26 @@ namespace MBGestaoEscolarAN.Entities
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int MateriaId { get; set; }
 
-        [Required]
-        [StringLength(100)]
-        public string Nome { get; set; }
-
-        [Required]
+        // Chave estrangeira para Turma
+        [Required(ErrorMessage = "A turma é obrigatória")]
         public int TurmaId { get; set; }
 
-        [ForeignKey("TurmaId")]
-        public Turma Turma { get; set; }
-
-        [Required]
+        // Chave estrangeira para Instrutor
+        [Required(ErrorMessage = "O instrutor é obrigatório")]
         public int InstrutorId { get; set; }
 
-        [ForeignKey("InstrutorId")]
-        public Instrutor Instrutor { get; set; }
+        [Required(ErrorMessage = "O nome da matéria é obrigatório")]
+        [StringLength(100, ErrorMessage = "O nome deve ter no máximo 100 caracteres")]
+        public string Nome { get; set; } = string.Empty;
 
-        [Required]
-        [Range(1, 1000)]
+        [Required(ErrorMessage = "A carga horária é obrigatória")]
+        [Range(1, 1000, ErrorMessage = "A carga horária deve ser entre 1 e 1000.")]
         public int CargaHoraria { get; set; }
 
-        [Required]
-        [Range(0.0, 10.0)]
+        [Required(ErrorMessage = "O peso da nota é obrigatório")]
+        [Column(TypeName = "decimal(5, 2)")] // Define a precisão no banco de dados
         public decimal PesoNota { get; set; }
+
+
     }
 }

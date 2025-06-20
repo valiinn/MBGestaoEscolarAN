@@ -2,144 +2,128 @@
 @using MudBlazor
 @using MBGestaoEscolarAN.Entities
 @using MBGestaoEscolarAN.Services.Interfaces
+
 @inject IMateriaService MateriaService
-@inject ITurmaService TurmaService
-@inject IInstrutorService InstrutorService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
 <MudCard>
     <MudCardContent>
-        <MudText Typo="Typo.h6" Class="mb-4">Lista de Matérias</MudText>
-
+        <MudText Typo="Typo.h6" Class="mb-4">Matérias Cadastradas</MudText>
         <MudPaper Class="d-flex justify-end flex-grow-1 mb-6" Elevation="0">
             <MudButton Color="Color.Primary"
                        Variant="Variant.Filled"
                        StartIcon="@Icons.Material.Filled.Add"
-                       Disabled="@_dialogOpen"
-                       OnClick="() => ShowDialog(null)">
+                       OnClick="() => ShowDialog(0)">
                 Adicionar Nova Matéria
             </MudButton>
         </MudPaper>
 
-        @if (materias == null || turmas == null || instrutores == null)
-        {
-            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
-            <p>Carregando dados...</p>
-        }
-        else
-        {
-            <MudDataGrid Items="materias" Hover="true" SortMode="SortMode.Multiple" Bordered="true" Striped="true">
-                <Columns>
-                    <PropertyColumn Property="x => x.MateriaId" Title="ID" />
-                    <PropertyColumn Property="x => x.Nome" Title="Nome" />
+        <MudDataGrid Items="@_materias" SortMode="SortMode.Multiple" Hover="true" Striped="true">
+            <Columns>
+                <PropertyColumn Property="x => x.MateriaId" Title="ID" />
+                <PropertyColumn Property="x => x.Nome" Title="Nome da Matéria" />
+                <PropertyColumn Property="x => x.CargaHoraria" Title="Carga Horária" />
+                <PropertyColumn Property="x => x.PesoNota" Title="Peso" Format="N2" />
+                <PropertyColumn Property="x => x.TurmaId" Title="ID Turma" />
+                <PropertyColumn Property="x => x.InstrutorId" Title="ID Instrutor" />
+                <TemplateColumn StickyRight="true" Title="Ações">
+                    <CellTemplate>
+                        <MudIconButton Color="Color.Primary"
+                                       Icon="@Icons.Material.Filled.Edit"
+                                       Size="Size.Small"
+                                       OnClick="() => ShowDialog(context.Item.MateriaId)" />
+                        <MudIconButton Color="Color.Error"
+                                       Icon="@Icons.Material.Filled.Delete"
+                                       Size="Size.Small"
+                                       OnClick="() => ConfirmaExclusao(context.Item)" />
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+            <PagerContent>
+                <MudDataGridPager T="Materia" />
+            </PagerContent>
+        </MudDataGrid>
 
-                    <TemplateColumn Title="Turma">
-                        <CellTemplate>
-                            @context.Item.Turma?.Nome
-                        </CellTemplate>
-                    </TemplateColumn>
-
-                    <TemplateColumn Title="Instrutor">
-                        <CellTemplate>
-                            @context.Item.Instrutor?.Nome
-                        </CellTemplate>
-                    </TemplateColumn>
-
-                    <TemplateColumn StickyRight="true" Title="Ações" Width="150px">
-                        <CellTemplate>
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                           Color="Color.Primary"
-                                           Size="Size.Small"
-                                           OnClick="() => ShowDialog(context.Item.MateriaId)" />
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                           Color="Color.Error"
-                                           Size="Size.Small"
-                                           OnClick="() => ConfirmarExclusaoMateria(context.Item)" />
-                        </CellTemplate>
-                    </TemplateColumn>
-                </Columns>
-
-                <PagerContent>
-                    <MudDataGridPager T="Materia" />
-                </PagerContent>
-            </MudDataGrid>
-        }
     </MudCardContent>
 </MudCard>
 
 @code {
-    private List<Materia> materias = new();
-    private List<Turma> turmas = new();
-    private List<Instrutor> instrutores = new();
-    private bool _dialogOpen = false;
+    private List<Materia> _materias = new();
 
     private readonly DialogOptions _dialogOptions = new()
-        {
-            CloseButton = true,
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true
-        };
+    {
+        CloseButton = true,
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true
+    };
 
     protected override async Task OnInitializedAsync()
     {
-        await CarregarDados();
+        await CarregarMaterias();
     }
 
-    private async Task CarregarDados()
+    private async Task CarregarMaterias()
     {
-        materias = (await MateriaService.ListarTodosAsync()).ToList();
-        turmas = (await TurmaService.ListarTodosAsync()).ToList();
-        instrutores = (await InstrutorService.ListarTodosAsync()).ToList();
+        try
+        {
+            _materias = (await MateriaService.ListarTodosAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao carregar matérias: {ex.Message}", Severity.Error);
+        }
     }
 
-    private async Task ShowDialog(int? materiaId)
+    private async Task ShowDialog(int idMateria)
     {
-        _dialogOpen = true;
+        var parameters = new DialogParameters();
+        string title;
 
-        var parameters = new DialogParameters
+        if (idMateria > 0)
         {
-            { "Turmas", turmas },
-            { "Instrutores", instrutores }
-        };
-
-        if (materiaId.HasValue)
-        {
-            var materia = materias.FirstOrDefault(m => m.MateriaId == materiaId.Value);
-            parameters.Add("Materia", materia);
-            parameters.Add("Title", "Editar Matéria");
+            var materia = _materias.FirstOrDefault(x => x.MateriaId == idMateria);
+            parameters.Add("materia", materia);
+            title = "Editar Matéria";
         }
         else
         {
-            parameters.Add("Materia", new Materia());
-            parameters.Add("Title", "Nova Matéria");
+            parameters.Add("materia", new Materia());
+            title = "Nova Matéria";
         }
 
-        var dialog = DialogService.Show<MateriaDialog>(parameters["Title"]!.ToString(), parameters, _dialogOptions);
+        var dialog = DialogService.Show<MateriaDialog>(title, parameters, _dialogOptions);
         var result = await dialog.Result;
-
-        _dialogOpen = false;
 
         if (!result.Canceled)
         {
-            await CarregarDados();
+            await CarregarMaterias();
             StateHasChanged();
         }
     }
 
-    private async Task ConfirmarExclusaoMateria(Materia materia)
+    private async Task ConfirmaExclusao(Materia materia)
     {
-        bool? confirmado = await DialogService.ShowMessageBox(
-            "Confirmação de Exclusão",
-            $"Deseja realmente excluir a matéria '{materia.Nome}'?",
-            yesText: "Sim", cancelText: "Não");
+        var confirmed = await DialogService.ShowMessageBox(
+                "Confirmação de Exclusão",
+                $"Deseja realmente excluir a matéria '{materia.Nome}'?",
+                yesText: "Sim, Excluir",
+                cancelText: "Não"
+        );
 
-        if (confirmado == true)
+        if (confirmed == true)
         {
-            await MateriaService.ExcluirAsync(materia.MateriaId);
-            await CarregarDados();
-            Snackbar.Add($"Matéria '{materia.Nome}' excluída com sucesso.", Severity.Success);
-            StateHasChanged();
+            var sucesso = await MateriaService.ExcluirAsync(materia.MateriaId);
+            if (sucesso)
+            {
+                await CarregarMaterias();
+                Snackbar.Add($"Matéria '{materia.Nome}' removida com sucesso.", Severity.Success);
+                StateHasChanged();
+            }
+            else
+            {
+                Snackbar.Add($"Não foi possível remover a matéria.", Severity.Error);
+            }
         }
     }
 }

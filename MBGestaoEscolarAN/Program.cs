@@ -25,10 +25,8 @@ builder.Services.AddDbContext<SQLServerDbContext>(options =>
 builder.Services.AddScoped<IAlunoService,AlunoService>();
 builder.Services.AddScoped<ICoordenadorService, CoordenadorService>();
 builder.Services.AddScoped<ICursoService, CursoService>();
-// ✅ Adicione os serviços de Matéria
+// Adicione os serviços de Matéria
 builder.Services.AddScoped<IMateriaService, MateriaService>();
-builder.Services.AddScoped<ITurmaService, TurmaService>();
-builder.Services.AddScoped<IInstrutorService, InstrutorService>();
 
 
 // Add MudBlazor services

@@ -4,13 +4,11 @@
 @using MudBlazor
 
 @inject IMateriaService MateriaService
-@inject ITurmaService TurmaService
-@inject IInstrutorService InstrutorService
 @inject ISnackbar Snackbar
 
 <MudDialog>
     <TitleContent>
-        <MudText Typo="Typo.h6" Class="tituloFormulario">
+        <MudText Typo="Typo.h6">
             <MudIcon Icon="@Icons.Material.Filled.Book" Class="mr-3" /> @viewModel.TituloFormulario
         </MudText>
     </TitleContent>
@@ -19,7 +17,6 @@
             <EditForm Model="@viewModel" OnValidSubmit="OnValidSubmit">
                 <DataAnnotationsValidator />
                 <MudGrid>
-
                     <MudItem xs="12">
                         <MudTextField Label="Nome da Matéria"
                                       @bind-Value="viewModel.Nome"
@@ -29,27 +26,42 @@
                     </MudItem>
 
                     <MudItem xs="12" sm="6">
-                        <MudSelect T="int" Label="Turma"
-                                   @bind-Value="viewModel.TurmaId"
-                                   For="@(() => viewModel.TurmaId)"
-                                   Required="true">
-                            @foreach (var turma in turmas)
-                            {
-                                <MudSelectItem Value="@turma.TurmaId">@turma.Nome</MudSelectItem>
-                            }
-                        </MudSelect>
+                        <MudNumericField Label="Carga Horária"
+                                         @bind-Value="viewModel.CargaHoraria"
+                                         For="@(() => viewModel.CargaHoraria)"
+                                         Required="true"
+                                         Min="1" />
                     </MudItem>
 
                     <MudItem xs="12" sm="6">
-                        <MudSelect T="int" Label="Instrutor"
-                                   @bind-Value="viewModel.InstrutorId"
-                                   For="@(() => viewModel.InstrutorId)"
-                                   Required="true">
-                            @foreach (var instrutor in instrutores)
-                            {
-                                <MudSelectItem Value="@instrutor.InstrutorId">@instrutor.Nome</MudSelectItem>
-                            }
-                        </MudSelect>
+                        <MudNumericField Label="Peso da Nota"
+                                         @bind-Value="viewModel.PesoNota"
+                                         For="@(() => viewModel.PesoNota)"
+                                         Required="true"
+                                         Step="0.1M" Min="0.1M" />
+                    </MudItem>
+
+                    @* NOTA: Para TurmaId e InstrutorId, o ideal é usar um MudSelect
+                        que carrega as turmas e instrutores disponíveis.
+                        Por simplicidade, usaremos um NumericField.
+                        Para usar MudSelect, você precisaria injetar os serviços de Turma e Instrutor
+                        e carregar as listas em OnInitializedAsync.
+                    *@
+
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField Label="ID da Turma"
+                                         HelperText="Trocar por um seletor de Turmas no futuro"
+                                         @bind-Value="viewModel.TurmaId"
+                                         For="@(() => viewModel.TurmaId)"
+                                         Required="true" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField Label="ID do Instrutor"
+                                         HelperText="Trocar por um seletor de Instrutores no futuro"
+                                         @bind-Value="viewModel.InstrutorId"
+                                         For="@(() => viewModel.InstrutorId)"
+                                         Required="true" />
                     </MudItem>
 
                 </MudGrid>
@@ -78,65 +90,68 @@
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
     [Parameter] public Materia materia { get; set; } = new();
-    bool sucesso = false;
+
     private MateriaViewModel viewModel = new();
     private bool salvando = false;
-    private List<Turma> turmas = new();
-    private List<Instrutor> instrutores = new();
 
     protected override async Task OnInitializedAsync()
     {
-        turmas = (await TurmaService.ListarTodosAsync()).ToList();
-        instrutores = (await InstrutorService.ListarTodosAsync()).ToList();
-
         if (materia?.MateriaId > 0)
         {
-            // Modo edição
+            // Modo de edição
             viewModel = new MateriaViewModel
-                {
-                    Id = materia.MateriaId,
-                    Nome = materia.Nome,
-                    TurmaId = materia.TurmaId,
-                    InstrutorId = materia.InstrutorId,
-                    
-                };
+            {
+                MateriaId = materia.MateriaId,
+                Nome = materia.Nome,
+                CargaHoraria = materia.CargaHoraria,
+                PesoNota = materia.PesoNota,
+                TurmaId = materia.TurmaId,
+                InstrutorId = materia.InstrutorId,
+            };
         }
         else
         {
-            // Novo registro
+            // Modo de criação
             viewModel = new MateriaViewModel();
         }
     }
 
     private async Task SalvarMateria()
     {
+        salvando = true;
+        bool sucesso = false;
         try
         {
-            salvando = true;
-            var novaMateria = new Materia
-                {
-                    MateriaId = viewModel.Id,
-                    Nome = viewModel.Nome,
-                    TurmaId = viewModel.TurmaId,
-                    InstrutorId = viewModel.InstrutorId
-                };
+            var materiaModel = new Materia
+            {
+                MateriaId = viewModel.MateriaId,
+                Nome = viewModel.Nome,
+                CargaHoraria = viewModel.CargaHoraria,
+                PesoNota = viewModel.PesoNota,
+                TurmaId = viewModel.TurmaId.Value, // .Value pois é Required
+                InstrutorId = viewModel.InstrutorId.Value, // .Value pois é Required
+            };
 
             if (viewModel.IsEdicao)
             {
-                await MateriaService.AlterarAsync(novaMateria);
+                sucesso = await MateriaService.AlterarAsync(materiaModel);
                 Snackbar.Add("Matéria atualizada com sucesso!", Severity.Success);
             }
             else
             {
-                await MateriaService.AdicionarAsync(novaMateria);
+                var newId = await MateriaService.AdicionarAsync(materiaModel);
+                sucesso = newId > 0;
                 Snackbar.Add("Matéria criada com sucesso!", Severity.Success);
             }
 
-            MudDialog.Close(DialogResult.Ok(true));
+            if (sucesso)
+            {
+                MudDialog.Close(DialogResult.Ok(true));
+            }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Erro ao salvar: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Erro ao salvar a matéria: {ex.Message}", Severity.Error);
         }
         finally
         {

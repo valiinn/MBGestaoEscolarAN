@@ -2,64 +2,60 @@
 using MBGestaoEscolarAN.Entities;
 using MBGestaoEscolarAN.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace MBGestaoEscolarAN.Services.Implementations
 {
     public class MateriaService : IMateriaService
     {
-        private readonly SQLServerDbContext _context;
+        private readonly SQLServerDbContext _contexto;
 
-        public MateriaService(SQLServerDbContext context)
+        public MateriaService(SQLServerDbContext contexto)
         {
-            _context = context;
-        }
-
-        public async Task<IEnumerable<Materia>> ListarTodosAsync()
-        {
-            return await _context.Materias
-                           .AsNoTracking()
-                           .OrderBy(x => x.Nome)
-                           .ToListAsync();
-        }
-
-        public async Task<Materia?> ListarPorIdAsync(int id)
-        {
-            return await _context.Materias
-                .AsNoTracking()
-                .Include(m => m.Turma)
-                .Include(m => m.Instrutor)
-                .FirstOrDefaultAsync(m => m.MateriaId == id);
+            _contexto = contexto;
         }
 
         public async Task<int> AdicionarAsync(Materia materia)
         {
-            await _context.Materias.AddAsync(materia);
-            await _context.SaveChangesAsync();
+            _contexto.Materias.Add(materia);
+            await _contexto.SaveChangesAsync();
             return materia.MateriaId;
         }
 
-        public async Task AlterarAsync(Materia materia)
+        public async Task<bool> AlterarAsync(Materia materia)
         {
-            _context.Materias.Update(materia);
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task ExcluirAsync(int id)
-        {
-            var materia = await _context.Materias.FindAsync(id);
-            if (materia is not null)
+            var materiaExiste = await _contexto.Materias.FindAsync(materia.MateriaId);
+            if (materiaExiste == null)
             {
-                _context.Materias.Remove(materia);
-                await _context.SaveChangesAsync();
+                return false;
             }
+            _contexto.Entry(materiaExiste).CurrentValues.SetValues(materia);
+            return await _contexto.SaveChangesAsync() > 0;
         }
 
-        Task IMateriaService.AdicionarAsync(Materia materia)
+        public async Task<bool> ExcluirAsync(int id)
         {
-            throw new NotImplementedException();
+            var materia = await _contexto.Materias.FindAsync(id);
+            if (materia == null)
+            {
+                return false;
+            }
+            _contexto.Materias.Remove(materia);
+            return await _contexto.SaveChangesAsync() > 0;
+        }
+
+        public async Task<Materia?> ListarPorIdAsync(int id)
+        {
+            return await _contexto.Materias
+                                  .AsNoTracking()
+                                  .FirstOrDefaultAsync(x => x.MateriaId == id);
+        }
+
+        public async Task<IEnumerable<Materia>> ListarTodosAsync()
+        {
+            return await _contexto.Materias
+                                  .AsNoTracking()
+                                  .OrderBy(x => x.Nome)
+                                  .ToListAsync();
         }
     }
 }

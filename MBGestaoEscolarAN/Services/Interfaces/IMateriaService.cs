@@ -1,15 +1,13 @@
 ﻿using MBGestaoEscolarAN.Entities;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace MBGestaoEscolarAN.Services.Interfaces
 {
     public interface IMateriaService
     {
         Task<IEnumerable<Materia>> ListarTodosAsync();
-        Task<Materia> ListarPorIdAsync(int id);
-        Task AdicionarAsync(Materia materia);
-        Task AlterarAsync(Materia materia);
-        Task ExcluirAsync(int id);
+        Task<Materia?> ListarPorIdAsync(int id);
+        Task<int> AdicionarAsync(Materia materia);
+        Task<bool> AlterarAsync(Materia materia);
+        Task<bool> ExcluirAsync(int id);
     }
 }
